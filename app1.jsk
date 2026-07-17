@@ -1,0 +1,287 @@
+import React, { useState } from 'react';
+
+// --- 1. STAFF WORKLOAD MAPPING DATABASE ---
+// Inga neenga eevalo staffs venum nalum add panni, avangaloda active years matrum subjects-ai map seiyalam.
+const STAFF_SUBJECT_MAP = {
+  "Anand": {
+    department: "IT",
+    years: ["third year", "final year"],
+    subjects: {
+      "third year": ["Web Tech", "Computer Networks"],
+      "final year": ["Cloud Computing", "Cyber Security"]
+    }
+  },
+  "Divya": {
+    department: "AI&DS",
+    years: ["first year", "second year"],
+    subjects: {
+      "first year": ["Python Programming", "Data Structures"],
+      "second year": ["Machine Learning", "Database Systems"]
+    }
+  },
+  "Suresh": {
+    department: "IT",
+    years: ["second year"],
+    subjects: {
+      "second year": ["Operating Systems", "Software Engineering"]
+    }
+  }
+};
+
+export default function App() {
+  const [currentScreen, setCurrentScreen] = useState('LANDING'); 
+  const [selection, setSelection] = useState({ department: '', year: '', subject: '' });
+  
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loggedInStaff, setLoggedInStaff] = useState('');
+  const [loginError, setLoginError] = useState('');
+
+  // Students default state
+  const [students, setStudents] = useState([
+    { 
+      id: "26CS01", 
+      name: "Anand Raj", 
+      cia1: '', assign1: '', seminar1: '',
+      cia2: '', model: '', assign2: '', seminar2: ''
+    },
+    { 
+      id: "26CS02", 
+      name: "Divya Bharathi", 
+      cia1: '', assign1: '', seminar1: '',
+      cia2: '', model: '', assign2: '', seminar2: ''
+    }
+  ]);
+
+  // Pure function to calculate dynamic split-ups
+  const calculateMarks = (student) => {
+    const cia1 = Number(student.cia1) || 0;
+    const assign1 = Number(student.assign1) || 0;
+    const sem1 = Number(student.seminar1) || 0;
+    const cia2 = Number(student.cia2) || 0;
+    const model = Number(student.model) || 0;
+    const assign2 = Number(student.assign2) || 0;
+    const sem2 = Number(student.seminar2) || 0;
+
+    const slot1 = ((cia1 + assign1 + sem1) / 100) * 20;
+    const modelReduced = model * 0.6;
+    const bestCIA2 = Math.max(cia2, modelReduced);
+    const slot2 = ((bestCIA2 + assign2 + sem2) / 100) * 20;
+    const finalInternal = slot1 + slot2;
+
+    return {
+      slot1: slot1.toFixed(2), 
+      bestCIA2: bestCIA2.toFixed(1),
+      slot2: slot2.toFixed(2),
+      final: finalInternal.toFixed(2)
+    };
+  };
+
+  const handleInputChange = (id, field, value) => {
+    setStudents(prev =>
+      prev.map(student => student.id === id ? { ...student, [field]: value } : student)
+    );
+  };
+
+  // --- 2. FIXED LOGIN HANDLER WITH CORRECT ERROR PRINT ---
+  const handleStaffLogin = (e) => {
+    e.preventDefault();
+    const enteredName = username.trim();
+    
+    // Check if staff profile exists in our map object
+    const staffProfile = STAFF_SUBJECT_MAP[enteredName];
+
+    if (staffProfile && password === 'pgpcet@123') {
+      setLoggedInStaff(enteredName);
+      setLoginError('');
+      // Auto-inject staff's predefined department into selection state
+      setSelection({ department: staffProfile.department, year: '', subject: '' });
+      setCurrentScreen('STAFF_SELECTION');
+    } else {
+      setLoginError('Invalid Staff credentials! Try: Anand, Divya, or Suresh (Password: pgpcet@123)');
+    }
+  };
+
+  const handleLogout = () => {
+    setLoggedInStaff('');
+    setUsername('');
+    setPassword('');
+    setSelection({ department: '', year: '', subject: '' });
+    setCurrentScreen('LANDING');
+  };
+
+  // Extract logged-in staff's map constraints
+  const currentStaffConfig = STAFF_SUBJECT_MAP[loggedInStaff];
+
+  return (
+    <div style={{ fontFamily: 'Segoe UI, sans-serif', backgroundColor: '#f4f6f9', minHeight: '100vh', padding: '15px' }}>
+      
+      {/* LANDING INDEX SCREEN */}
+      {currentScreen === 'LANDING' && (
+        <div style={{ maxWidth: '400px', margin: '80px auto', backgroundColor: '#fff', padding: '35px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+          <h2 style={{ color: '#2c3e50', marginBottom: '5px', textAlign: 'center' }}>PGPCET Internal Portal</h2>
+          <p style={{ textAlign: 'center', color: '#7f8c8d', fontSize: '14px', marginBottom: '25px' }}>Dynamic Workload Automated Architecture</p>
+          
+          <form onSubmit={handleStaffLogin}>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ fontSize: '14px', fontWeight: '600', color: '#34495e' }}>Staff Name (Case Sensitive):</label>
+              <input 
+                type="text" 
+                required
+                placeholder="e.g. Anand, Divya, Suresh" 
+                style={inputStyle} 
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </div>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontSize: '14px', fontWeight: '600', color: '#34495e' }}>Password:</label>
+              <input 
+                type="password" 
+                required
+                placeholder="••••••••" 
+                style={inputStyle} 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
+            {loginError && <p style={{ color: '#e74c3c', fontSize: '13px', textAlign: 'center', margin: '0 0 15px 0', fontWeight: 'bold' }}>{loginError}</p>}
+
+            <button type="submit" style={{ backgroundColor: '#3498db', color: 'white', padding: '12px 25px', border: 'none', borderRadius: '4px', width: '100%', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
+              Verify & Login
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* DYNAMIC CONFIGURATION SELECTION BASED ON STAFF LOGGED IN */}
+      {currentScreen === 'STAFF_SELECTION' && currentStaffConfig && (
+        <div style={{ maxWidth: '450px', margin: '80px auto', backgroundColor: '#fff', padding: '30px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+            <h3 style={{ color: '#34495e', margin: 0 }}>Class Allocation Mapping</h3>
+            <span style={{ backgroundColor: '#e8f4fd', color: '#3498db', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}>
+              👤 Prof. {loggedInStaff}
+            </span>
+          </div>
+          
+          {/* Department - Auto Lock Based on Staff Object */}
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ fontWeight: 'bold', fontSize: '14px' }}>Department:</label>
+            <input 
+              type="text" 
+              readOnly 
+              style={{ ...inputStyle, backgroundColor: '#f8f9fa', fontWeight: 'bold', color: '#2c3e50' }} 
+              value={selection.department} 
+            />
+          </div>
+
+          {/* Year - Dynamically pulled out from Staff Array Mapping */}
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ fontWeight: 'bold', fontSize: '14px' }}>Year Mapping Selection:</label>
+            <select 
+              style={inputStyle} 
+              value={selection.year} 
+              onChange={(e) => setSelection({...selection, year: e.target.value, subject: ''})}
+            >
+              <option value="">-- Select Your Assigned Year --</option>
+              {currentStaffConfig.years.map(yr => (
+                <option key={yr} value={yr}>{yr.toUpperCase()}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Subject - Dynamically filters list according to selected Year */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ fontWeight: 'bold', fontSize: '14px' }}>Subject Mapping Selection:</label>
+            <select 
+              style={inputStyle} 
+              disabled={!selection.year}
+              value={selection.subject} 
+              onChange={(e) => setSelection({...selection, subject: e.target.value})}
+            >
+              <option value="">-- Select Your Subject --</option>
+              {selection.year && currentStaffConfig.subjects[selection.year]?.map(sub => (
+                <option key={sub} value={sub}>{sub}</option>
+              ))}
+            </select>
+          </div>
+
+          <button 
+            onClick={() => setCurrentScreen('MARK_ENTRY')} 
+            disabled={!selection.year || !selection.subject}
+            style={{ backgroundColor: '#2ecc71', color: 'white', padding: '12px', width: '100%', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', opacity: (!selection.year || !selection.subject) ? 0.6 : 1 }}
+          >
+            Fetch Marksheet Grid
+          </button>
+        </div>
+      )}
+
+      {/* MARK ENTRY TABLE WITH LIVE FORMULA LOGIC */}
+      {currentScreen === 'MARK_ENTRY' && (
+        <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', overflowX: 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'center' }}>
+            <div>
+              <h3 style={{ margin: 0 }}>Automated Evaluation Dashboard</h3>
+              <p style={{ margin: '5px 0 0 0', color: '#7f8c8d', fontSize: '13px' }}>
+                Dept: {selection.department} | Year: {selection.year.toUpperCase()} | Subject: {selection.subject} | <strong>Instructor: Prof. {loggedInStaff}</strong>
+              </p>
+            </div>
+            <button onClick={handleLogout} style={{ padding: '8px 15px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Logout</button>
+          </div>
+
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '13px' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
+                <th style={thStyle}>Reg.No</th>
+                <th style={thStyle}>Student Name</th>
+                <th style={thStyle}>CIA 1 (60)</th>
+                <th style={thStyle}>Assign 1 (20)</th>
+                <th style={thStyle}>Seminar 1 (20)</th>
+                <th style={{ ...thStyle, backgroundColor: '#2980b9' }}>Slot 1 (20)</th>
+                <th style={thStyle}>CIA 2 (60)</th>
+                <th style={thStyle}>Model (100)</th>
+                <th style={thStyle}>Assign 2 (20)</th>
+                <th style={thStyle}>Seminar 2 (20)</th>
+                <th style={{ ...thStyle, backgroundColor: '#2980b9' }}>Slot 2 (20)</th>
+                <th style={{ ...thStyle, backgroundColor: '#27ae60' }}>Internal (40)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {students.map((student) => {
+                const calculated = calculateMarks(student);
+                return (
+                  <tr key={student.id} style={{ borderBottom: '1px solid #eee' }}>
+                    <td style={{ ...tdStyle, fontWeight: 'bold' }}>{student.id}</td>
+                    <td style={{ ...tdStyle, textAlign: 'left' }}>{student.name}</td>
+                    <td style={tdStyle}><input type="number" max="60" style={tableInputStyle} value={student.cia1} onChange={(e) => handleInputChange(student.id, 'cia1', e.target.value)} /></td>
+                    <td style={tdStyle}><input type="number" max="20" style={tableInputStyle} value={student.assign1} onChange={(e) => handleInputChange(student.id, 'assign1', e.target.value)} /></td>
+                    <td style={tdStyle}><input type="number" max="20" style={tableInputStyle} value={student.seminar1} onChange={(e) => handleInputChange(student.id, 'seminar1', e.target.value)} /></td>
+                    <td style={{ ...tdStyle, backgroundColor: '#ebf5fb', fontWeight: 'bold', color: '#2980b9' }}>{calculated.slot1}</td>
+                    <td style={tdStyle}><input type="number" max="60" style={tableInputStyle} value={student.cia2} onChange={(e) => handleInputChange(student.id, 'cia2', e.target.value)} /></td>
+                    <td style={tdStyle}><input type="number" max="100" style={tableInputStyle} value={student.model} onChange={(e) => handleInputChange(student.id, 'model', e.target.value)} /></td>
+                    <td style={tdStyle}><input type="number" max="20" style={tableInputStyle} value={student.assign2} onChange={(e) => handleInputChange(student.id, 'assign2', e.target.value)} /></td>
+                    <td style={tdStyle}><input type="number" max="20" style={tableInputStyle} value={student.seminar2} onChange={(e) => handleInputChange(student.id, 'seminar2', e.target.value)} /></td>
+                    <td style={{ ...tdStyle, backgroundColor: '#ebf5fb', fontWeight: 'bold', color: '#2980b9' }}>{calculated.slot2}</td>
+                    <td style={{ ...tdStyle, backgroundColor: '#e8f8f5', fontWeight: 'bold', color: '#27ae60', fontSize: '15px' }}>{calculated.final}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          <button onClick={() => alert(`Marks evaluated by Prof. ${loggedInStaff} for ${selection.subject} submitted successfully!`)} style={{ marginTop: '20px', padding: '12px 30px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>
+            Submit Marks
+          </button>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+// Styling elements
+const inputStyle = { width: '100%', padding: '8px', marginTop: '5px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' };
+const thStyle = { padding: '10px', border: '1px solid #ddd' };
+const tdStyle = { padding: '8px', border: '1px solid #ddd' };
+const tableInputStyle = { width: '50px', padding: '5px', borderRadius: '4px', border: '1px solid #ccc', textAlign: 'center' };

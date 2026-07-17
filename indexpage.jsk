@@ -1,0 +1,147 @@
+import React, { useState } from 'react';
+
+export default function IndexPage({ onRoleSelect }) {
+  // Card hover state track panna ID save panrom
+  const [hoveredCard, setHoveredCard] = useState(null);
+
+  const roles = [
+    {
+      id: 'ADMIN',
+      title: 'Admin Portal',
+      description: 'Manage departments, staffs, students and course mappings.',
+      color: '#e74c3c',
+      icon: '🔐'
+    },
+    {
+      id: 'STAFF',
+      title: 'Staff Portal',
+      description: 'Configure classes, record attendance, and enter internal marks.',
+      color: '#3498db',
+      icon: '👨‍🏫'
+    },
+    {
+      id: 'STUDENT',
+      title: 'Student Portal',
+      description: 'View semester attendance, test scores, and internal aggregates.',
+      color: '#2ecc71',
+      icon: '🎓'
+    }
+  ];
+
+  return (
+    <div style={containerStyle}>
+      {/* Header Area */}
+      <header style={headerStyle}>
+        <h1 style={{ margin: '0 0 10px 0', fontSize: '2.2rem', color: '#2c3e50' }}>
+          🏫 College Academic Portal
+        </h1>
+        <p style={{ margin: 0, color: '#7f8c8d', fontSize: '1.1rem' }}>
+          Automated Internal Evaluation & Mark Management System
+        </p>
+      </header>
+
+      {/* Main Role Selection Grid */}
+      <main style={gridStyle}>
+        {roles.map((role) => {
+          // Hover state calculate panni dynamically shadow matrum transform apply panrom
+          const isHovered = hoveredCard === role.id;
+          
+          return (
+            <div 
+              key={role.id} 
+              style={{
+                ...cardStyle(role.color),
+                transform: isHovered ? 'translateY(-5px)' : 'translateY(0)',
+                boxShadow: isHovered ? '0 8px 25px rgba(0, 0, 0, 0.15)' : '0 4px 15px rgba(0, 0, 0, 0.05)'
+              }}
+              onMouseEnter={() => setHoveredCard(role.id)}
+              onMouseLeave={() => setHoveredCard(null)}
+              onClick={() => onRoleSelect(role.id)}
+            >
+              <div style={iconStyle}>{role.icon}</div>
+              <h3 style={{ color: '#2c3e50', margin: '15px 0 10px 0', fontSize: '1.4rem' }}>
+                {role.title}
+              </h3>
+              <p style={{ color: '#7f8c8d', fontSize: '0.95rem', lineHeight: '1.5', margin: '0 0 20px 0', flexGrow: 1 }}>
+                {role.description}
+              </p>
+              <button style={btnStyle(role.color)}>
+                Access Portal
+              </button>
+            </div>
+          );
+        })}
+      </main>
+
+      {/* Footer */}
+      <footer style={footerStyle}>
+        <p>© 2026 College Academic Cell. All Rights Reserved.</p>
+      </footer>
+    </div>
+  );
+}
+
+// Inline CSS Styles
+const containerStyle = {
+  fontFamily: "'Segoe UI', Roboto, sans-serif",
+  backgroundColor: '#f4f6f9',
+  minHeight: '100vh',
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'space-between',
+  padding: '40px 20px',
+  boxSizing: 'border-box'
+};
+
+const headerStyle = {
+  textAlign: 'center',
+  marginBottom: '40px'
+};
+
+const gridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+  gap: '30px',
+  maxWidth: '1000px',
+  width: '100%',
+  margin: '0 auto',
+};
+
+const cardStyle = (borderColor) => ({
+  backgroundColor: '#ffffff',
+  borderRadius: '12px',
+  padding: '30px',
+  textAlign: 'center',
+  cursor: 'pointer',
+  borderTop: `6px solid ${borderColor}`,
+  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100%',
+  boxSizing: 'border-box'
+});
+
+const iconStyle = {
+  fontSize: '3rem',
+  marginBottom: '10px'
+};
+
+const btnStyle = (color) => ({
+  backgroundColor: color,
+  color: 'white',
+  padding: '10px 20px',
+  border: 'none',
+  borderRadius: '6px',
+  fontWeight: 'bold',
+  cursor: 'pointer',
+  width: '100%',
+  fontSize: '1rem',
+  boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+});
+
+const footerStyle = {
+  textAlign: 'center',
+  marginTop: '40px',
+  color: '#95a5a6',
+  fontSize: '0.9rem'
+};

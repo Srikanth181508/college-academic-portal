@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>College Academic Portal - Data Export System</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f6f9;">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // --- 1. STAFF WORKLOAD CONFIGURATION ---
+        const STAFF_SUBJECT_MAP = {
+          "Dr. Anand": {
+            department: "IT",
+            years: ["third year", "final year"],
+            subjects: {
+              "third year": ["Web Tech", "Computer Networks"],
+              "final year": ["Cloud Computing", "Cyber Security"]
+            }
+          },
+          "Prof. Divya": {
+            department: "AI&DS",
+            years: ["first year", "second year"],
+            subjects: {
+              "first year": ["Python Programming", "Data Structures"],
+              "second year": ["Machine Learning", "Database Systems"]
+            }
+          },
+          "Mr. Suresh": {
+            department: "IT",
+            years: ["second year"],
+            subjects: {
+              "second year": ["Operating Systems", "Software Engineering"]
+            }
+          }
+        };
+
+        const EMPTY_STRUCTURE = {
+            "IT": { "first year": [], "second year": [], "third year": [], "final year": [] },
+            "AI&DS": { "first year": [], "second year": [], "third year": [], "final year": [] }
+        };
+
+        // --- 2. INDEX HOMEPAGE SYSTEM CONTROLLER ---
+        function IndexPage({ onRoleSelect }) {
+            const [hoveredCard, setHoveredCard] = useState(null);
+            const roles = [
+                { id: 'ADMIN', title: 'Admin Portal', description: 'Dynamic Student registration dashboard system.', color: '#e74c3c', icon: '🔐' },
+                { id: 'STAFF', title: 'Staff Portal', description: 'Configure classes, and manage student evaluation grids.', color: '#3498db', icon: '👨‍🏫' },
+                { id: 'STUDENT', title: 'Student Portal', description: 'View semester attendance and internal mark structures.', color: '#2ecc71', icon: '🎓' }
+            ];
+
+            return (
+                <div style={{ fontFamily: "'Segoe UI', sans-serif", minHeight: '100vh', boxSizing: 'border-box', padding: '40px 20px', backgroundImage: "url('background1.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                    <header style={{ background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(8px)', padding: '25px 40px', borderRadius: '16px', textAlign: 'center', marginBottom: '30px', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)', maxWidth: '800px', width: '100%', boxSizing: 'border-box' }}>
+                        <h1 style={{ margin: '0 0 10px 0', fontSize: '2.4rem', color: '#1a252f' }}>🏫 PGP College Academic Portal</h1>
+                        <p style={{ margin: 0, color: '#34495e', fontSize: '1.1rem', fontWeight: '500' }}>Automated Internal Evaluation & Mark Management System</p>
+                    </header>
+                    <main style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '30px', maxWidth: '1000px', width: '100%', margin: '0 auto' }}>
+                        {roles.map((role) => {
+                            const isHovered = hoveredCard === role.id;
+                            return (
+                                <div 
+                                    key={role.id} 
+                                    style={{ backgroundColor: 'rgba(255, 255, 255, 0.92)', backdropFilter: 'blur(5px)', borderRadius: '12px', padding: '30px', textAlign: 'center', cursor: 'pointer', borderTop: `6px solid ${role.color}`, transition: 'transform 0.2s ease, box-shadow 0.2s ease', display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box', transform: isHovered ? 'translateY(-8px)' : 'translateY(0)', boxShadow: isHovered ? '0 12px 30px rgba(0, 0, 0, 0.25)' : '0 4px 15px rgba(0, 0, 0, 0.1)' }}
+                                    onMouseEnter={() => setHoveredCard(role.id)}
+                                    onMouseLeave={() => setHoveredCard(null)}
+                                    onClick={() => onRoleSelect(role.id)}
+                                >
+                                    <div style={{ fontSize: '3rem', marginBottom: '10px' }}>{role.icon}</div>
+                                    <h3 style={{ color: '#2c3e50', margin: '15px 0 10px 0', fontSize: '1.4rem' }}>{role.title}</h3>
+                                    <p style={{ color: '#566573', fontSize: '0.95rem', lineHeight: '1.5', margin: '0 0 20px 0', flexGrow: 1 }}>{role.description}</p>
+                                    <button style={{ backgroundColor: role.color, color: 'white', padding: '12px 20px', border: 'none', borderRadius: '6px', fontWeight: 'bold', width: '100%', fontSize: '1rem', cursor: 'pointer' }}>Access Portal</button>
+                                </div>
+                            );
+                        })}
+                    </main>
+                </div>
+            );
+        }
+
+        // --- 3. LOGIN INTERACTION CONTROLLER ---
+        function LoginPortal({ roleInfo, onLoginSuccess, onBack, masterDb }) {
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+
+            const handleAuthCheck = (e) => {
+                e.preventDefault();
+                if (roleInfo.id === 'ADMIN') {
+                    if (username === 'pgpcet' && password === 'pgpcet@123') {
+                        setError(''); onLoginSuccess('ADMIN', username, null);
+                    } else { setError('Invalid Admin credentials!'); }
+                }
+                if (roleInfo.id === 'STAFF') {
+                    const staffProfile = STAFF_SUBJECT_MAP[username];
+                    if (staffProfile && password === 'pgpcet@123') {
+                        setError(''); onLoginSuccess('STAFF', username, staffProfile);
+                    } else { setError('Invalid Password configuration!'); }
+                }
+                if (roleInfo.id === 'STUDENT') {
+                    const inputRegNo = username.trim().toLowerCase();
+                    const inputPassword = password.trim().toLowerCase();
+
+                    if (inputRegNo !== inputPassword) {
+                        setError('For students, Username and Password must be the same Register Number!');
+                        return;
+                    }
+
+                    let matchedStudent = null;
+                    for (const dept in masterDb) {
+                        for (const yr in masterDb[dept]) {
+                            const found = masterDb[dept][yr].find(s => s.id.toLowerCase() === inputRegNo);
+                            if (found) { matchedStudent = { ...found, dept, yr }; break; }
+                        }
+                        if (matchedStudent) break;
+                    }
+
+                    if (matchedStudent) {
+                        setError(''); onLoginSuccess('STUDENT', matchedStudent.name, matchedStudent);
+                    } else { setError('Register Number not found! Ask Admin to register your profile.'); }
+                }
+            };
+
+            const inputStyle = { width: '100%', padding: '10px', marginTop: '5px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' };
+
+            return (
+                <div style={{ fontFamily: "Segoe UI, sans-serif", minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundImage: "url('background1.jpg')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                    <div style={{ maxWidth: '400px', width: '90%', backgroundColor: 'rgba(255,255,255,0.95)', padding: '40px', borderRadius: '12px', boxShadow: '0 8px 25px rgba(0,0,0,0.2)' }}>
+                        <h3 style={{ color: '#2c3e50', textAlign: 'center', margin: '0 0 20px 0' }}>{roleInfo.icon} {roleInfo.title}</h3>
+                        <form onSubmit={handleAuthCheck}>
+                            <div style={{ marginBottom: '15px' }}>
+                                <label style={{ fontWeight: '500' }}>{roleInfo.id === 'STUDENT' ? 'Register Number (Username):' : 'Username / Profile:'}</label>
+                                {roleInfo.id === 'STAFF' ? (
+                                    <select required style={inputStyle} value={username} onChange={(e) => setUsername(e.target.value)}>
+                                        <option value="">-- Select Instructor --</option>
+                                        {Object.keys(STAFF_SUBJECT_MAP).map(name => <option key={name} value={name}>{name}</option>)}
+                                    </select>
+                                ) : (
+                                    <input type="text" required style={inputStyle} placeholder={roleInfo.id === 'STUDENT' ? "e.g. 23IT55" : "Enter username"} value={username} onChange={(e) => setUsername(e.target.value)} />
+                                )}
+                            </div>
+                            <div style={{ marginBottom: '20px' }}>
+                                <label style={{ fontWeight: '500' }}>Password:</label>
+                                <input type="password" required style={inputStyle} placeholder={roleInfo.id === 'STUDENT' ? "Enter Reg No Again" : "Enter password"} value={password} onChange={(e) => setPassword(e.target.value)} />
+                            </div>
+                            {error && <p style={{ color: '#e74c3c', fontSize: '0.85rem', fontWeight: 'bold', margin: '0 0 15px 0' }}>{error}</p>}
+                            <button type="submit" style={{ backgroundColor: roleInfo.color, color: 'white', padding: '12px', width: '100%', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '10px' }}>Log In</button>
+                            <button type="button" onClick={onBack} style={{ backgroundColor: '#f2f4f4', color: '#7f8c8d', padding: '10px', width: '100%', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Back</button>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- 4. MASTER APPLICATIONS ROOT ---
+        function App() {
+            const [currentScreen, setCurrentScreen] = useState('LANDING'); 
+            const [activeRole, setActiveRole] = useState(null);
+            const [selection, setSelection] = useState({ department: '', year: '', subject: '' });
+            const [loggedInUser, setLoggedInUser] = useState(null);
+            const [activeProfile, setActiveProfile] = useState(null);
+            
+            const [masterStudentDb, setMasterStudentDb] = useState(EMPTY_STRUCTURE);
+            const [adminForm, setAdminForm] = useState({ dept: 'IT', year: 'first year', name: '', id: '' });
+
+            const handleRoleSelection = (roleId) => {
+                setActiveRole({ ADMIN: { id: 'ADMIN', title: 'Admin Portal', color: '#e74c3c', icon: '🔐' }, STAFF: { id: 'STAFF', title: 'Staff Portal', color: '#3498db', icon: '👨‍🏫' }, STUDENT: { id: 'STUDENT', title: 'Student Portal', color: '#2ecc71', icon: '🎓' } }[roleId]);
+                setCurrentScreen('LOGIN_SCREEN');
+            };
+
+            const handleAuthSuccess = (roleId, username, profileData) => {
+                setLoggedInUser(username);
+                if (roleId === 'ADMIN') setCurrentScreen('ADMIN_DASHBOARD');
+                if (roleId === 'STAFF') {
+                    setActiveProfile(profileData);
+                    setSelection({ department: profileData.department, year: '', subject: '' });
+                    setCurrentScreen('STAFF_SELECTION');
+                }
+                if (roleId === 'STUDENT') {
+                    let liveData = null;
+                    for (const d in masterStudentDb) {
+                        for (const y in masterStudentDb[d]) {
+                            const match = masterStudentDb[d][y].find(s => s.id.toLowerCase() === username.trim().toLowerCase());
+                            if (match) liveData = match;
+                        }
+                    }
+                    setActiveProfile(liveData || profileData);
+                    setCurrentScreen('STUDENT_DASHBOARD');
+                }
+            };
+
+            const handleAddStudentSubmit = (e) => {
+                e.preventDefault();
+                if (!adminForm.name || !adminForm.id) return;
+                
+                const newRecord = {
+                    id: adminForm.id.trim(), name: adminForm.name.trim(),
+                    cia1: '', assign1: '', seminar1: '', cia2: '', model: '', assign2: '', seminar2: ''
+                };
+
+                setMasterStudentDb(prev => {
+                    const copy = { ...prev };
+                    copy[adminForm.dept][adminForm.year] = [...copy[adminForm.dept][adminForm.year], newRecord];
+                    return copy;
+                });
+
+                alert(`Student "${adminForm.name}" registered successfully!`);
+                setAdminForm({ ...adminForm, name: '', id: '' });
+            };
+
+            const handleMarkChange = (studentId, field, value) => {
+                setMasterStudentDb(prev => {
+                    const copy = { ...prev };
+                    copy[selection.department][selection.year] = copy[selection.department][selection.year].map(s => 
+                        s.id === studentId ? { ...s, [field]: value } : s
+                    );
+                    return copy;
+                });
+            };
+
+            const calculateMarks = (student) => {
+                const cia1 = Number(student.cia1) || 0; const assign1 = Number(student.assign1) || 0; const sem1 = Number(student.seminar1) || 0;
+                const cia2 = Number(student.cia2) || 0; const model = Number(student.model) || 0; const assign2 = Number(student.assign2) || 0; const sem2 = Number(student.seminar2) || 0;
+                const slot1 = ((cia1 + assign1 + sem1) / 100) * 20;
+                const slot2 = ((Math.max(cia2, (model * 0.6)) + assign2 + sem2) / 100) * 20;
+                return { slot1: slot1.toFixed(2), slot2: slot2.toFixed(2), final: (slot1 + slot2).toFixed(2) };
+            };
+
+            // DYNAMIC FILE DOWNLOAD ENGINE (EXPORTS RAW MATRICES INTO EXCEL-READABLE CSV)
+            const handleSaveAndExportCSV = () => {
+                const targetStudents = masterStudentDb[selection.department]?.[selection.year] || [];
+                if (targetStudents.length === 0) return;
+
+                // Create header columns
+                let csvContent = "Register Number,Student Name,CIA 1,Assignment 1,Seminar 1,Slot 1 (20),CIA 2,Model Exam,Assignment 2,Seminar 2,Slot 2 (20),Total Internal (40)\n";
+                
+                // Construct text strings row by row
+                targetStudents.forEach(s => {
+                    const marks = calculateMarks(s);
+                    csvContent += `${s.id},${s.name},${s.cia1 || 0},${s.assign1 || 0},${s.seminar1 || 0},${marks.slot1},${s.cia2 || 0},${s.model || 0},${s.assign2 || 0},${s.seminar2 || 0},${marks.slot2},${marks.final}\n`;
+                });
+
+                // Generate trigger virtual blob download attachment
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.setAttribute("href", url);
+                link.setAttribute("download", `Marksheet_${selection.department}_${selection.year.replace(" ", "_")}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                alert("🎉 Marksheet data compiled & Excel-ready CSV File downloaded successfully!");
+            };
+
+            const inputStyle = { width: '100%', padding: '10px', marginTop: '5px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' };
+            const tdStyle = { padding: '10px', border: '1px solid #ddd' };
+
+            return (
+                <div>
+                    {currentScreen === 'LANDING' && <IndexPage onRoleSelect={handleRoleSelection} />}
+                    {currentScreen === 'LOGIN_SCREEN' && <LoginPortal roleInfo={activeRole} masterDb={masterStudentDb} onLoginSuccess={handleAuthSuccess} onBack={() => setCurrentScreen('LANDING')} />}
+
+                    {/* ADMIN DASHBOARD */}
+                    {currentScreen === 'ADMIN_DASHBOARD' && (
+                        <div style={{ maxWidth: '600px', margin: '40px auto', backgroundColor: '#fff', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', fontFamily:'Segoe UI' }}>
+                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'2px solid #eee', paddingBottom:'10px' }}>
+                                <h2 style={{ color: '#e74c3c', margin: 0 }}>⚙️ Admin Control Panel</h2>
+                                <button onClick={() => setCurrentScreen('LANDING')} style={{ padding: '8px 15px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Logout</button>
+                            </div>
+                            <form onSubmit={handleAddStudentSubmit} style={{ marginTop: '20px', background:'#f8f9fa', padding:'20px', borderRadius:'8px' }}>
+                                <h3 style={{ margin:'0 0 15px 0', fontSize:'1.1rem' }}>🎓 Register New Student</h3>
+                                <div style={{ marginBottom: '10px' }}>
+                                    <label>Select Department:</label>
+                                    <select style={inputStyle} value={adminForm.dept} onChange={e => setAdminForm({...adminForm, dept: e.target.value})}>
+                                        <option value="IT">Information Technology (IT)</option>
+                                        <option value="AI&DS">Artificial Intelligence & Data Science (AI&DS)</option>
+                                    </select>
+                                </div>
+                                <div style={{ marginBottom: '10px' }}>
+                                    <label>Academic Year:</label>
+                                    <select style={inputStyle} value={adminForm.year} onChange={e => setAdminForm({...adminForm, year: e.target.value})}>
+                                        <option value="first year">First Year</option>
+                                        <option value="second year">Second Year</option>
+                                        <option value="third year">Third Year</option>
+                                        <option value="final year">Final Year</option>
+                                    </select>
+                                </div>
+                                <div style={{ marginBottom: '10px' }}>
+                                    <label>Student Full Name:</label>
+                                    <input type="text" required style={inputStyle} placeholder="Enter Student Name" value={adminForm.name} onChange={e => setAdminForm({...adminForm, name: e.target.value})} />
+                                </div>
+                                <div style={{ marginBottom: '15px' }}>
+                                    <label>Register Number (Used for Student Login):</label>
+                                    <input type="text" required style={inputStyle} placeholder="e.g. 23IT55" value={adminForm.id} onChange={e => setAdminForm({...adminForm, id: e.target.value})} />
+                                </div>
+                                <button type="submit" style={{ width:'100%', padding:'12px', background:'#27ae60', color:'white', border:'none', borderRadius:'6px', fontWeight:'bold', cursor:'pointer' }}>➕ Add Student</button>
+                            </form>
+                        </div>
+                    )}
+
+                    {/* STAFF CONFIGURATION */}
+                    {currentScreen === 'STAFF_SELECTION' && activeProfile && (
+                        <div style={{ maxWidth: '450px', margin: '80px auto', backgroundColor: '#fff', padding: '35px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', fontFamily:'Segoe UI' }}>
+                            <h3 style={{ color: '#34495e', margin: '0 0 20px 0' }}>👨‍🏫 Staff Dashboard</h3>
+                            <div style={{ marginBottom: '15px' }}>
+                                <label>Department:</label>
+                                <input type="text" readOnly style={{ ...inputStyle, backgroundColor: '#f5f5f5' }} value={selection.department} />
+                            </div>
+                            <div style={{ marginBottom: '15px' }}>
+                                <label>Select Year Batch:</label>
+                                <select style={inputStyle} value={selection.year} onChange={(e) => setSelection({...selection, year: e.target.value, subject: ''})}>
+                                    <option value="">-- Choose Year --</option>
+                                    {activeProfile.years.map(yr => <option key={yr} value={yr}>{yr.toUpperCase()}</option>)}
+                                </select>
+                            </div>
+                            <div style={{ marginBottom: '25px' }}>
+                                <label>Select Subject Specialization:</label>
+                                <select style={inputStyle} disabled={!selection.year} value={selection.subject} onChange={(e) => setSelection({...selection, subject: e.target.value})}>
+                                    <option value="">-- Choose Subject --</option>
+                                    {selection.year && activeProfile.subjects[selection.year]?.map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                                </select>
+                            </div>
+                            <button onClick={() => setCurrentScreen('MARK_ENTRY')} disabled={!selection.year || !selection.subject} style={{ backgroundColor: '#3498db', color: 'white', padding: '12px', width: '100%', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor:'pointer', opacity: (!selection.year || !selection.subject) ? 0.5 : 1 }}>Load Evaluation Grid</button>
+                        </div>
+                    )}
+
+                    {/* DYNAMIC EDITABLE MATRIX WITH CSV DATA EXPORT ACTION */}
+                    {currentScreen === 'MARK_ENTRY' && (
+                        <div style={{ backgroundColor: '#fff', padding: '25px', margin: '20px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', overflowX: 'auto', fontFamily:'Segoe UI' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                                <div>
+                                    <h3 style={{ margin: 0 }}>📊 Marks Evaluation Matrix (Fully Editable)</h3>
+                                    <p style={{ margin: '5px 0 0 0', color: '#7f8c8d', fontSize: '13px' }}>Dept: {selection.department} | Year: {selection.year.toUpperCase()} | Subject: {selection.subject}</p>
+                                </div>
+                                <button onClick={() => setCurrentScreen('LANDING')} style={{ padding: '10px 20px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '6px', cursor:'pointer' }}>Logout</button>
+                            </div>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: '13px', marginBottom: '20px' }}>
+                                <thead>
+                                    <tr style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
+                                        <th style={tdStyle}>Reg.No</th><th style={tdStyle}>Student Name</th><th style={tdStyle}>CIA 1 (100)</th><th style={tdStyle}>Assign 1 (100)</th><th style={tdStyle}>Sem 1 (100)</th><th style={{...tdStyle, backgroundColor:'#2980b9'}}>Slot 1 (20)</th><th style={tdStyle}>CIA 2 (100)</th><th style={tdStyle}>Model (100)</th><th style={tdStyle}>Assign 2 (100)</th><th style={tdStyle}>Sem 2 (100)</th><th style={{...tdStyle, backgroundColor:'#2980b9'}}>Slot 2 (20)</th><th style={{...tdStyle, backgroundColor:'#27ae60'}}>Internal (40)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(masterStudentDb[selection.department]?.[selection.year] || []).length === 0 ? (
+                                        <tr><td colSpan="12" style={{...tdStyle, padding:'30px', color:'#7f8c8d'}}>⚠️ No students added by Admin to this batch yet.</td></tr>
+                                    ) : (
+                                        masterStudentDb[selection.department][selection.year].map((s) => {
+                                            const calculated = calculateMarks(s);
+                                            return (
+                                                <tr key={s.id}>
+                                                    <td style={tdStyle}>{s.id}</td>
+                                                    <td style={{...tdStyle, textAlign:'left', fontWeight:'bold'}}>{s.name}</td>
+                                                    <td style={tdStyle}><input type="number" style={{width:'50px', padding:'4px', textAlign:'center'}} value={s.cia1} onChange={(e)=>handleMarkChange(s.id, 'cia1', e.target.value)} /></td>
+                                                    <td style={tdStyle}><input type="number" style={{width:'50px', padding:'4px', textAlign:'center'}} value={s.assign1} onChange={(e)=>handleMarkChange(s.id, 'assign1', e.target.value)} /></td>
+                                                    <td style={tdStyle}><input type="number" style={{width:'50px', padding:'4px', textAlign:'center'}} value={s.seminar1} onChange={(e)=>handleMarkChange(s.id, 'seminar1', e.target.value)} /></td>
+                                                    <td style={{...tdStyle, fontWeight:'bold', color:'#2980b9', backgroundColor:'#f4f9fd'}}>{calculated.slot1}</td>
+                                                    <td style={tdStyle}><input type="number" style={{width:'50px', padding:'4px', textAlign:'center'}} value={s.cia2} onChange={(e)=>handleMarkChange(s.id, 'cia2', e.target.value)} /></td>
+                                                    <td style={tdStyle}><input type="number" style={{width:'50px', padding:'4px', textAlign:'center'}} value={s.model} onChange={(e)=>handleMarkChange(s.id, 'model', e.target.value)} /></td>
+                                                    <td style={tdStyle}><input type="number" style={{width:'50px', padding:'4px', textAlign:'center'}} value={s.assign2} onChange={(e)=>handleMarkChange(s.id, 'assign2', e.target.value)} /></td>
+                                                    <td style={tdStyle}><input type="number" style={{width:'50px', padding:'4px', textAlign:'center'}} value={s.seminar2} onChange={(e)=>handleMarkChange(s.id, 'seminar2', e.target.value)} /></td>
+                                                    <td style={{...tdStyle, fontWeight:'bold', color:'#2980b9', backgroundColor:'#f4f9fd'}}>{calculated.slot2}</td>
+                                                    <td style={{...tdStyle, backgroundColor:'#e8f8f5', fontWeight:'bold', color:'#27ae60', fontSize:'14px'}}>{calculated.final}</td>
+                                                </tr>
+                                            )
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
+                            <div style={{ display: 'flex', gap: '15px' }}>
+                                {/* UPGRADED SYSTEM BUTTON INTERACTION */}
+                                <button onClick={handleSaveAndExportCSV} disabled={(masterStudentDb[selection.department]?.[selection.year] || []).length === 0} style={{ padding: '12px 30px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', boxShadow:'0 4px 6px rgba(0,0,0,0.1)' }}>💾 Save & Download Excel (CSV)</button>
+                                <button onClick={() => setCurrentScreen('STAFF_SELECTION')} style={{ padding: '12px 20px', backgroundColor: '#7f8c8d', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>🔙 Back</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* INDIVIDUAL STUDENT EVALUATION SHEET */}
+                    {currentScreen === 'STUDENT_DASHBOARD' && activeProfile && (
+                        <div style={{ maxWidth: '700px', margin: '50px auto', backgroundColor: '#fff', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', fontFamily: 'Segoe UI' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #eee', paddingBottom: '15px' }}>
+                                <div>
+                                    <h3 style={{ margin: 0, color: '#2ecc71' }}>🎓 Academic Report Card</h3>
+                                    <p style={{ margin: '5px 0 0 0', color: '#7f8c8d' }}>Welcome, {activeProfile.name} (Reg No: {activeProfile.id})</p>
+                                </div>
+                                <button onClick={() => setCurrentScreen('LANDING')} style={{ padding: '8px 15px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '6px', cursor:'pointer' }}>Logout</button>
+                            </div>
+                            <div style={{ marginTop: '25px' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center' }}>
+                                    <thead>
+                                        <tr style={{ backgroundColor: '#f8f9fa' }}>
+                                            <th style={tdStyle}>Mapped Course Evaluation Target</th><th style={tdStyle}>Slot 1 Cumulative (20)</th><th style={tdStyle}>Slot 2 Cumulative (20)</th><th style={{...tdStyle, color:'#2ecc71'}}>Final Internal Mark (40)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td style={{...tdStyle, textAlign:'left'}}>Registered Curriculum Structure</td>
+                                            <td style={tdStyle}>{calculateMarks(activeProfile).slot1}</td>
+                                            <td style={tdStyle}>{calculateMarks(activeProfile).slot2}</td>
+                                            <td style={{...tdStyle, fontWeight:'bold', color:'#2ecc71'}}>{calculateMarks(activeProfile).final}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
