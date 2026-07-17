@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>College Academic Portal - Data Export System</title>
+    <title>College Academic Portal - Persistent Database</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -13,35 +13,39 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState } = React;
+        const { useState, useEffect } = React;
 
         // --- 1. STAFF WORKLOAD CONFIGURATION ---
         const STAFF_SUBJECT_MAP = {
-          "Dr. Anand": {
-            department: "IT",
-            years: ["third year", "final year"],
+         "Ms.D.Vinotha": {
+            department: ["IT"],
+            years: ["final year"],
             subjects: {
-              "third year": ["Web Tech", "Computer Networks"],
-              "final year": ["Cloud Computing", "Cyber Security"]
+              "final year": ["Human Values and Ethics"],
             }
           },
-          "Prof. Divya": {
-            department: "AI&DS",
-            years: ["first year", "second year"],
+          "Mr.T.Sathish": {
+            department: ["IT"],
+            years: ["final year"],
             subjects: {
-              "first year": ["Python Programming", "Data Structures"],
-              "second year": ["Machine Learning", "Database Systems"]
+              "final year": ["Principle of Management"],
             }
           },
-          "Mr. Suresh": {
-            department: "IT",
-            years: ["second year"],
+          "Mr.S.Sivasakthi": {
+            department: ["IT"],
+            years: ["final year"],
             subjects: {
-              "second year": ["Operating Systems", "Software Engineering"]
+              "final year": ["IT and Agricultural System"],
             }
-          }
+          },
+          "Mrs.B.Sangeethapriya": {
+            department: ["IT"],
+            years: ["final year"],
+            subjects: {
+                "final year": ["Industrial Management"],
+            }
+         }
         };
-
         const EMPTY_STRUCTURE = {
             "IT": { "first year": [], "second year": [], "third year": [], "final year": [] },
             "AI&DS": { "first year": [], "second year": [], "third year": [], "final year": [] }
@@ -109,7 +113,7 @@
                     const inputPassword = password.trim().toLowerCase();
 
                     if (inputRegNo !== inputPassword) {
-                        setError('For students, Username and Password must be the same Register Number!');
+                        setError('Username and Password must be the same Register Number!');
                         return;
                     }
 
@@ -124,7 +128,7 @@
 
                     if (matchedStudent) {
                         setError(''); onLoginSuccess('STUDENT', matchedStudent.name, matchedStudent);
-                    } else { setError('Register Number not found! Ask Admin to register your profile.'); }
+                    } else { setError('Register Number not found! Admin must register your profile first.'); }
                 }
             };
 
@@ -167,8 +171,18 @@
             const [loggedInUser, setLoggedInUser] = useState(null);
             const [activeProfile, setActiveProfile] = useState(null);
             
-            const [masterStudentDb, setMasterStudentDb] = useState(EMPTY_STRUCTURE);
+            // INITIALIZE MASTER DB FROM LOCALSTORAGE
+            const [masterStudentDb, setMasterStudentDb] = useState(() => {
+                const savedDb = localStorage.getItem('pgp_master_db');
+                return savedDb ? JSON.parse(savedDb) : EMPTY_STRUCTURE;
+            });
+
             const [adminForm, setAdminForm] = useState({ dept: 'IT', year: 'first year', name: '', id: '' });
+
+            // AUTOMATICALLY SAVE TO BROWSER LOCALSTORAGE WHEN CHANGES OCCUR
+            useEffect(() => {
+                localStorage.setItem('pgp_master_db', JSON.stringify(masterStudentDb));
+            }, [masterStudentDb]);
 
             const handleRoleSelection = (roleId) => {
                 setActiveRole({ ADMIN: { id: 'ADMIN', title: 'Admin Portal', color: '#e74c3c', icon: '🔐' }, STAFF: { id: 'STAFF', title: 'Staff Portal', color: '#3498db', icon: '👨‍🏫' }, STUDENT: { id: 'STUDENT', title: 'Student Portal', color: '#2ecc71', icon: '🎓' } }[roleId]);
@@ -211,7 +225,7 @@
                     return copy;
                 });
 
-                alert(`Student "${adminForm.name}" registered successfully!`);
+                alert(`Student "${adminForm.name}" registered successfully & locked into permanent browser storage!`);
                 setAdminForm({ ...adminForm, name: '', id: '' });
             };
 
@@ -233,21 +247,17 @@
                 return { slot1: slot1.toFixed(2), slot2: slot2.toFixed(2), final: (slot1 + slot2).toFixed(2) };
             };
 
-            // DYNAMIC FILE DOWNLOAD ENGINE (EXPORTS RAW MATRICES INTO EXCEL-READABLE CSV)
             const handleSaveAndExportCSV = () => {
                 const targetStudents = masterStudentDb[selection.department]?.[selection.year] || [];
                 if (targetStudents.length === 0) return;
 
-                // Create header columns
                 let csvContent = "Register Number,Student Name,CIA 1,Assignment 1,Seminar 1,Slot 1 (20),CIA 2,Model Exam,Assignment 2,Seminar 2,Slot 2 (20),Total Internal (40)\n";
                 
-                // Construct text strings row by row
                 targetStudents.forEach(s => {
                     const marks = calculateMarks(s);
                     csvContent += `${s.id},${s.name},${s.cia1 || 0},${s.assign1 || 0},${s.seminar1 || 0},${marks.slot1},${s.cia2 || 0},${s.model || 0},${s.assign2 || 0},${s.seminar2 || 0},${marks.slot2},${marks.final}\n`;
                 });
 
-                // Generate trigger virtual blob download attachment
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement("a");
@@ -332,7 +342,7 @@
                         </div>
                     )}
 
-                    {/* DYNAMIC EDITABLE MATRIX WITH CSV DATA EXPORT ACTION */}
+                    {/* EDITABLE MATRIX SHEET */}
                     {currentScreen === 'MARK_ENTRY' && (
                         <div style={{ backgroundColor: '#fff', padding: '25px', margin: '20px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', overflowX: 'auto', fontFamily:'Segoe UI' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
@@ -375,37 +385,59 @@
                                 </tbody>
                             </table>
                             <div style={{ display: 'flex', gap: '15px' }}>
-                                {/* UPGRADED SYSTEM BUTTON INTERACTION */}
                                 <button onClick={handleSaveAndExportCSV} disabled={(masterStudentDb[selection.department]?.[selection.year] || []).length === 0} style={{ padding: '12px 30px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', boxShadow:'0 4px 6px rgba(0,0,0,0.1)' }}>💾 Save & Download Excel (CSV)</button>
                                 <button onClick={() => setCurrentScreen('STAFF_SELECTION')} style={{ padding: '12px 20px', backgroundColor: '#7f8c8d', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>🔙 Back</button>
                             </div>
                         </div>
                     )}
 
-                    {/* INDIVIDUAL STUDENT EVALUATION SHEET */}
+                    {/* INDIVIDUAL STUDENT DASHBOARD */}
                     {currentScreen === 'STUDENT_DASHBOARD' && activeProfile && (
-                        <div style={{ maxWidth: '700px', margin: '50px auto', backgroundColor: '#fff', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', fontFamily: 'Segoe UI' }}>
+                        <div style={{ maxWidth: '750px', margin: '50px auto', backgroundColor: '#fff', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', fontFamily: 'Segoe UI' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #eee', paddingBottom: '15px' }}>
                                 <div>
                                     <h3 style={{ margin: 0, color: '#2ecc71' }}>🎓 Academic Report Card</h3>
-                                    <p style={{ margin: '5px 0 0 0', color: '#7f8c8d' }}>Welcome, {activeProfile.name} (Reg No: {activeProfile.id})</p>
+                                    <p style={{ margin: '5px 0 0 0', color: '#7f8c8d', fontWeight: '500' }}>
+                                        Welcome, {activeProfile.name} (Reg No: {activeProfile.id})
+                                    </p>
+                                    <p style={{ margin: '3px 0 0 0', color: '#34495e', fontSize: '13px', fontWeight: 'bold' }}>
+                                        Branch: {activeProfile.dept} | Year: {activeProfile.yr.toUpperCase()}
+                                    </p>
                                 </div>
                                 <button onClick={() => setCurrentScreen('LANDING')} style={{ padding: '8px 15px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '6px', cursor:'pointer' }}>Logout</button>
                             </div>
                             <div style={{ marginTop: '25px' }}>
                                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center' }}>
                                     <thead>
-                                        <tr style={{ backgroundColor: '#f8f9fa' }}>
-                                            <th style={tdStyle}>Mapped Course Evaluation Target</th><th style={tdStyle}>Slot 1 Cumulative (20)</th><th style={tdStyle}>Slot 2 Cumulative (20)</th><th style={{...tdStyle, color:'#2ecc71'}}>Final Internal Mark (40)</th>
+                                        <tr style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
+                                            <th style={{...tdStyle, textAlign:'left'}}>Registered Subject</th>
+                                            <th style={tdStyle}>Slot 1 Cumulative (20)</th>
+                                            <th style={tdStyle}>Slot 2 Cumulative (20)</th>
+                                            <th style={{...tdStyle, backgroundColor:'#27ae60', color:'white'}}>Final Internal Mark (40)</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr>
-                                            <td style={{...tdStyle, textAlign:'left'}}>Registered Curriculum Structure</td>
-                                            <td style={tdStyle}>{calculateMarks(activeProfile).slot1}</td>
-                                            <td style={tdStyle}>{calculateMarks(activeProfile).slot2}</td>
-                                            <td style={{...tdStyle, fontWeight:'bold', color:'#2ecc71'}}>{calculateMarks(activeProfile).final}</td>
-                                        </tr>
+                                        {(() => {
+                                            // Student-oda dept matrum year-ku mapped aanadhu yaaru-nu staff list-la irundhu subject-ah fetch pannuthu
+                                            let assignedSubjects = ["Registered subject"];
+                                            for (const staff in STAFF_SUBJECT_MAP) {
+                                                const profile = STAFF_SUBJECT_MAP[staff];
+                                                if (profile.department === activeProfile.dept && profile.subjects[activeProfile.yr]) {
+                                                    assignedSubjects = profile.subjects[activeProfile.yr];
+                                                    break;
+                                                }
+                                            }
+                                            
+                                            // Oru student-ku multiple subjects irundha row create aagum
+                                            return assignedSubjects.map((subjectName, idx) => (
+                                                <tr key={idx}>
+                                                    <td style={{...tdStyle, textAlign:'left', fontWeight:'bold', color:'#34495e'}}>{subjectName}</td>
+                                                    <td style={tdStyle}>{calculateMarks(activeProfile).slot1}</td>
+                                                    <td style={tdStyle}>{calculateMarks(activeProfile).slot2}</td>
+                                                    <td style={{...tdStyle, fontWeight:'bold', color:'#27ae60', backgroundColor:'#e8f8f5'}}>{calculateMarks(activeProfile).final}</td>
+                                                </tr>
+                                            ));
+                                        })()}
                                     </tbody>
                                 </table>
                             </div>
