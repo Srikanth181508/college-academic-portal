@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>College Academic Portal - Persistent Database</title>
+    <title>College Academic Portal - Google Sheets Database</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -17,39 +17,38 @@
 
         // --- 1. STAFF WORKLOAD CONFIGURATION ---
         const STAFF_SUBJECT_MAP = {
-         "Ms.D.Vinotha": {
-            department: ["IT"],
-            years: ["final year"],
+          "Dr. Anand": {
+            department: "IT",
+            years: ["third year", "final year"],
             subjects: {
-              "final year": ["Human Values and Ethics"],
+              "third year": ["Web Tech", "Computer Networks"],
+              "final year": ["Principle of Management", "Cloud Computing", "Cyber Security"]
             }
           },
-          "Mr.T.Sathish": {
-            department: ["IT"],
-            years: ["final year"],
+          "Prof. Divya": {
+            department: "AI&DS",
+            years: ["first year", "second year"],
             subjects: {
-              "final year": ["Principle of Management"],
+              "first year": ["Python Programming", "Data Structures"],
+              "second year": ["Machine Learning", "Database Systems"]
             }
           },
-          "Mr.S.Sivasakthi": {
-            department: ["IT"],
-            years: ["final year"],
+          "Mr. Suresh": {
+            department: "IT",
+            years: ["second year"],
             subjects: {
-              "final year": ["IT and Agricultural System"],
+              "second year": ["Operating Systems", "Software Engineering"]
             }
-          },
-          "Mrs.B.Sangeethapriya": {
-            department: ["IT"],
-            years: ["final year"],
-            subjects: {
-                "final year": ["Industrial Management"],
-            }
-         }
+          }
         };
+
         const EMPTY_STRUCTURE = {
             "IT": { "first year": [], "second year": [], "third year": [], "final year": [] },
             "AI&DS": { "first year": [], "second year": [], "third year": [], "final year": [] }
         };
+
+        // --- BACKEND DATABASE LINK (LIVE GOOGLE SHEETS INTEGRATION) ---
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxG7yZAIzhCHQizzx0abZAkiBBUW2r8lqlMITYRvSZ0p2CDIjeAKLvKQ-bkINf7gloVNw/exec";
 
         // --- 2. INDEX HOMEPAGE SYSTEM CONTROLLER ---
         function IndexPage({ onRoleSelect }) {
@@ -170,19 +169,103 @@
             const [selection, setSelection] = useState({ department: '', year: '', subject: '' });
             const [loggedInUser, setLoggedInUser] = useState(null);
             const [activeProfile, setActiveProfile] = useState(null);
+            const [isLoading, setIsLoading] = useState(false);
             
-            // INITIALIZE MASTER DB FROM LOCALSTORAGE
-            const [masterStudentDb, setMasterStudentDb] = useState(() => {
-                const savedDb = localStorage.getItem('pgp_master_db');
-                return savedDb ? JSON.parse(savedDb) : EMPTY_STRUCTURE;
-            });
-
+            // MASTER STUDENT DATABASE STATE
+            const [masterStudentDb, setMasterStudentDb] = useState(EMPTY_STRUCTURE);
             const [adminForm, setAdminForm] = useState({ dept: 'IT', year: 'first year', name: '', id: '' });
 
-            // AUTOMATICALLY SAVE TO BROWSER LOCALSTORAGE WHEN CHANGES OCCUR
+            // 🔄 LOAD DATA FROM GOOGLE SHEETS ON STARTUP
             useEffect(() => {
-                localStorage.setItem('pgp_master_db', JSON.stringify(masterStudentDb));
-            }, [masterStudentDb]);
+                setIsLoading(true);
+                fetch(SCRIPT_URL)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.students && data.students.length > 0) {
+                            let structuredData = JSON.parse(JSON.stringify(EMPTY_STRUCTURE));
+                            
+                            data.students.forEach(stu => {
+                                if(structuredData[stu.dept] && structuredData[stu.dept][stu.year]) {
+                                    let studentMarks = data.marks ? data.marks.find(m => m.rollNo === stu.regNo) : null;
+                                    
+                                    structuredData[stu.dept][stu.year].push({
+                                        id: stu.regNo,
+                                        name: stu.name,
+                                        cia1: studentMarks ? studentMarks.internal1 : '',
+                                        assign1: studentMarks ? studentMarks.assignment1 : '',
+                                        seminar1: studentMarks ? studentMarks.attendance : '',
+                                        cia2: studentMarks ? studentMarks.internal2 : '',
+                                        model: studentMarks ? studentMarks.assignment2 : '',
+                                        assign2: '',
+                                        seminar2: ''
+                                    });
+                                }
+                            });
+                            setMasterStudentDb(structuredData);
+                        }
+                        setIsLoading(false);
+                    })
+                    .catch(err => {
+                        console.error("Error fetching sheet database:", err);
+                        setIsLoading(false);
+                    });
+            }, []);
+
+            // 🚀 AUTOMATED DATA SYNC TO GOOGLE SHEETS BACKEND
+            const syncToCloud = (actionType, rawDbStructure) => {
+                setIsLoading(true);
+                
+                let flatStudentsList = [];
+                let flatMarksList = [];
+
+                for (const dept in rawDbStructure) {
+                    for (const yr in rawDbStructure[dept]) {
+                        rawDbStructure[dept][yr].forEach(student => {
+                            flatStudentsList.push({
+                                regNo: student.id,
+                                name: student.name,
+                                dept: dept,
+                                year: yr,
+                                section: "A"
+                            });
+                            flatMarksList.push({
+                                rollNo: student.id,
+                                subjectCode: selection.subject || "GEN101",
+                                subjectName: selection.subject || "General Course",
+                                staffName: loggedInUser || "Admin",
+                                attendance: student.seminar1 || 0,
+                                assignment1: student.assign1 || 0,
+                                assignment2: student.model || 0,
+                                internal1: student.cia1 || 0,
+                                internal2: student.cia2 || 0,
+                                totalInternal: calculateMarks(student).final
+                            });
+                        });
+                    }
+                }
+
+                // Send Students Matrix
+                fetch(SCRIPT_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "SAVE_STUDENTS", payload: flatStudentsList })
+                }).then(() => {
+                    // Send Marks Sync Matrix
+                    return fetch(SCRIPT_URL, {
+                        method: "POST",
+                        mode: "no-cors",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "SAVE_MARKS", payload: flatMarksList })
+                    });
+                }).then(() => {
+                    setIsLoading(false);
+                    alert("⚡ Central Google Sheets Cloud Database updated successfully!");
+                }).catch(err => {
+                    setIsLoading(false);
+                    console.error("Cloud error sync:", err);
+                });
+            };
 
             const handleRoleSelection = (roleId) => {
                 setActiveRole({ ADMIN: { id: 'ADMIN', title: 'Admin Portal', color: '#e74c3c', icon: '🔐' }, STAFF: { id: 'STAFF', title: 'Staff Portal', color: '#3498db', icon: '👨‍🏫' }, STUDENT: { id: 'STUDENT', title: 'Student Portal', color: '#2ecc71', icon: '🎓' } }[roleId]);
@@ -219,24 +302,22 @@
                     cia1: '', assign1: '', seminar1: '', cia2: '', model: '', assign2: '', seminar2: ''
                 };
 
-                setMasterStudentDb(prev => {
-                    const copy = { ...prev };
-                    copy[adminForm.dept][adminForm.year] = [...copy[adminForm.dept][adminForm.year], newRecord];
-                    return copy;
-                });
+                const updatedDb = { ...masterStudentDb };
+                updatedDb[adminForm.dept][adminForm.year] = [...updatedDb[adminForm.dept][adminForm.year], newRecord];
+                
+                setMasterStudentDb(updatedDb);
+                syncToCloud("SAVE_STUDENTS", updatedDb);
 
-                alert(`Student "${adminForm.name}" registered successfully & locked into permanent browser storage!`);
+                alert(`Student "${adminForm.name}" registered successfully! Syncing to Google Sheets...`);
                 setAdminForm({ ...adminForm, name: '', id: '' });
             };
 
             const handleMarkChange = (studentId, field, value) => {
-                setMasterStudentDb(prev => {
-                    const copy = { ...prev };
-                    copy[selection.department][selection.year] = copy[selection.department][selection.year].map(s => 
-                        s.id === studentId ? { ...s, [field]: value } : s
-                    );
-                    return copy;
-                });
+                const updatedDb = { ...masterStudentDb };
+                updatedDb[selection.department][selection.year] = updatedDb[selection.department][selection.year].map(s => 
+                    s.id === studentId ? { ...s, [field]: value } : s
+                );
+                setMasterStudentDb(updatedDb);
             };
 
             const calculateMarks = (student) => {
@@ -248,6 +329,8 @@
             };
 
             const handleSaveAndExportCSV = () => {
+                syncToCloud("SAVE_MARKS", masterStudentDb);
+
                 const targetStudents = masterStudentDb[selection.department]?.[selection.year] || [];
                 if (targetStudents.length === 0) return;
 
@@ -266,8 +349,6 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-
-                alert("🎉 Marksheet data compiled & Excel-ready CSV File downloaded successfully!");
             };
 
             const inputStyle = { width: '100%', padding: '10px', marginTop: '5px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' };
@@ -275,6 +356,12 @@
 
             return (
                 <div>
+                    {isLoading && (
+                        <div style={{ position:'fixed', top:0, left:0, width:'100%', height:'100%', background:'rgba(255,255,255,0.8)', display:'flex', justifyContent:'center', alignItems:'center', zIndex:9999, fontFamily:'Segoe UI' }}>
+                            <h2>🔄 Connecting Central Sheet Database Engine... Please wait...</h2>
+                        </div>
+                    )}
+
                     {currentScreen === 'LANDING' && <IndexPage onRoleSelect={handleRoleSelection} />}
                     {currentScreen === 'LOGIN_SCREEN' && <LoginPortal roleInfo={activeRole} masterDb={masterStudentDb} onLoginSuccess={handleAuthSuccess} onBack={() => setCurrentScreen('LANDING')} />}
 
@@ -311,7 +398,7 @@
                                     <label>Register Number (Used for Student Login):</label>
                                     <input type="text" required style={inputStyle} placeholder="e.g. 23IT55" value={adminForm.id} onChange={e => setAdminForm({...adminForm, id: e.target.value})} />
                                 </div>
-                                <button type="submit" style={{ width:'100%', padding:'12px', background:'#27ae60', color:'white', border:'none', borderRadius:'6px', fontWeight:'bold', cursor:'pointer' }}>➕ Add Student</button>
+                                <button type="submit" style={{ width:'100%', padding:'12px', background:'#27ae60', color:'white', border:'none', borderRadius:'6px', fontWeight:'bold', cursor:'pointer' }}>➕ Add & Sync Student</button>
                             </form>
                         </div>
                     )}
@@ -347,7 +434,7 @@
                         <div style={{ backgroundColor: '#fff', padding: '25px', margin: '20px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', overflowX: 'auto', fontFamily:'Segoe UI' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                                 <div>
-                                    <h3 style={{ margin: 0 }}>📊 Marks Evaluation Matrix (Fully Editable)</h3>
+                                    <h3 style={{ margin: 0 }}>📊 Marks Evaluation Matrix (Google Sheet Database Linked)</h3>
                                     <p style={{ margin: '5px 0 0 0', color: '#7f8c8d', fontSize: '13px' }}>Dept: {selection.department} | Year: {selection.year.toUpperCase()} | Subject: {selection.subject}</p>
                                 </div>
                                 <button onClick={() => setCurrentScreen('LANDING')} style={{ padding: '10px 20px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '6px', cursor:'pointer' }}>Logout</button>
@@ -385,7 +472,7 @@
                                 </tbody>
                             </table>
                             <div style={{ display: 'flex', gap: '15px' }}>
-                                <button onClick={handleSaveAndExportCSV} disabled={(masterStudentDb[selection.department]?.[selection.year] || []).length === 0} style={{ padding: '12px 30px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', boxShadow:'0 4px 6px rgba(0,0,0,0.1)' }}>💾 Save & Download Excel (CSV)</button>
+                                <button onClick={handleSaveAndExportCSV} disabled={(masterStudentDb[selection.department]?.[selection.year] || []).length === 0} style={{ padding: '12px 30px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', boxShadow:'0 4px 6px rgba(0,0,0,0.1)' }}>💾 Cloud Sync & Export Local Excel (CSV)</button>
                                 <button onClick={() => setCurrentScreen('STAFF_SELECTION')} style={{ padding: '12px 20px', backgroundColor: '#7f8c8d', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>🔙 Back</button>
                             </div>
                         </div>
@@ -393,51 +480,28 @@
 
                     {/* INDIVIDUAL STUDENT DASHBOARD */}
                     {currentScreen === 'STUDENT_DASHBOARD' && activeProfile && (
-                        <div style={{ maxWidth: '750px', margin: '50px auto', backgroundColor: '#fff', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', fontFamily: 'Segoe UI' }}>
+                        <div style={{ maxWidth: '700px', margin: '50px auto', backgroundColor: '#fff', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', fontFamily: 'Segoe UI' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #eee', paddingBottom: '15px' }}>
                                 <div>
                                     <h3 style={{ margin: 0, color: '#2ecc71' }}>🎓 Academic Report Card</h3>
-                                    <p style={{ margin: '5px 0 0 0', color: '#7f8c8d', fontWeight: '500' }}>
-                                        Welcome, {activeProfile.name} (Reg No: {activeProfile.id})
-                                    </p>
-                                    <p style={{ margin: '3px 0 0 0', color: '#34495e', fontSize: '13px', fontWeight: 'bold' }}>
-                                        Branch: {activeProfile.dept} | Year: {activeProfile.yr.toUpperCase()}
-                                    </p>
+                                    <p style={{ margin: '5px 0 0 0', color: '#7f8c8d' }}>Welcome, {activeProfile.name} (Reg No: {activeProfile.id})</p>
                                 </div>
                                 <button onClick={() => setCurrentScreen('LANDING')} style={{ padding: '8px 15px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '6px', cursor:'pointer' }}>Logout</button>
                             </div>
                             <div style={{ marginTop: '25px' }}>
                                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center' }}>
                                     <thead>
-                                        <tr style={{ backgroundColor: '#2c3e50', color: '#fff' }}>
-                                            <th style={{...tdStyle, textAlign:'left'}}>Registered Subject</th>
-                                            <th style={tdStyle}>Slot 1 Cumulative (20)</th>
-                                            <th style={tdStyle}>Slot 2 Cumulative (20)</th>
-                                            <th style={{...tdStyle, backgroundColor:'#27ae60', color:'white'}}>Final Internal Mark (40)</th>
+                                        <tr style={{ backgroundColor: '#f8f9fa' }}>
+                                            <th style={tdStyle}>Mapped Course Evaluation Target</th><th style={tdStyle}>Slot 1 Cumulative (20)</th><th style={tdStyle}>Slot 2 Cumulative (20)</th><th style={{...tdStyle, color:'#2ecc71'}}>Final Internal Mark (40)</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {(() => {
-                                            // Student-oda dept matrum year-ku mapped aanadhu yaaru-nu staff list-la irundhu subject-ah fetch pannuthu
-                                            let assignedSubjects = ["Registered subject"];
-                                            for (const staff in STAFF_SUBJECT_MAP) {
-                                                const profile = STAFF_SUBJECT_MAP[staff];
-                                                if (profile.department === activeProfile.dept && profile.subjects[activeProfile.yr]) {
-                                                    assignedSubjects = profile.subjects[activeProfile.yr];
-                                                    break;
-                                                }
-                                            }
-                                            
-                                            // Oru student-ku multiple subjects irundha row create aagum
-                                            return assignedSubjects.map((subjectName, idx) => (
-                                                <tr key={idx}>
-                                                    <td style={{...tdStyle, textAlign:'left', fontWeight:'bold', color:'#34495e'}}>{subjectName}</td>
-                                                    <td style={tdStyle}>{calculateMarks(activeProfile).slot1}</td>
-                                                    <td style={tdStyle}>{calculateMarks(activeProfile).slot2}</td>
-                                                    <td style={{...tdStyle, fontWeight:'bold', color:'#27ae60', backgroundColor:'#e8f8f5'}}>{calculateMarks(activeProfile).final}</td>
-                                                </tr>
-                                            ));
-                                        })()}
+                                        <tr>
+                                            <td style={{...tdStyle, textAlign:'left'}}>Registered Curriculum Structure</td>
+                                            <td style={tdStyle}>{calculateMarks(activeProfile).slot1}</td>
+                                            <td style={tdStyle}>{calculateMarks(activeProfile).slot2}</td>
+                                            <td style={{...tdStyle, fontWeight:'bold', color:'#2ecc71'}}>{calculateMarks(activeProfile).final}</td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -447,8 +511,9 @@
             );
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        const root = document.getElementById('root');
+        const reactRoot = ReactDOM.createRoot(root);
+        reactRoot.render(<App />);
     </script>
 </body>
 </html>
