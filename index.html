@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>College Academic Portal - Google Sheets Database</title>
+    <title>PGP COLLEGE OF ENGINEERING AND TECHNOLOGY(Autonomous)</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -17,7 +17,7 @@
 
         // --- 1. STAFF WORKLOAD CONFIGURATION ---
         const STAFF_SUBJECT_MAP = {
-          "Dr. Anand": {
+          "Mrs.E.Ramya": {
             department: "IT",
             years: ["third year", "final year"],
             subjects: {
@@ -25,21 +25,73 @@
               "final year": ["Principle of Management", "Cloud Computing", "Cyber Security"]
             }
           },
-          "Prof. Divya": {
+          "Mrs.P.Nandhini": {
             department: "AI&DS",
-            years: ["first year", "second year"],
+            years: [ "second year","third year"],
             subjects: {
-              "first year": ["Python Programming", "Data Structures"],
-              "second year": ["Machine Learning", "Database Systems"]
+              "second year": ["Operating Systems"],
+              "third year": ["Network Security"]
             }
           },
-          "Mr. Suresh": {
-            department: "IT",
-            years: ["second year"],
+          "Mrs.P.Nandhini": {
+            department: ["IT","AI&DS"],
+            years: [ "second year","third year"],
             subjects: {
-              "second year": ["Operating Systems", "Software Engineering"]
+              "second year": ["Operating Systems"],
+              "third year": ["Network Security"]
             }
-          }
+          },
+          "Ms.D.Vinotha": {
+            department: ["IT","AI&DS"],
+            years: ["final year"],
+            subjects: {
+              "final year": ["Human value and Ethics"]
+            }
+          },
+           "Mr.T.Sathish": {
+            department: ["IT","AI&DS"],
+            years: ["final year"],
+            subjects: {
+              "final year": ["Principle of Management System"]
+            }
+          },
+           "Mr.S.Sivasakathi": {
+            department: ["IT","AI&DS"],
+            years: ["final year"],
+            subjects: {
+              "final year": ["IT in Agricultural System"]
+            }
+          },
+           "Mrs.B.Sangeetha priya": {
+            department: ["IT","AI&DS"],
+            years: ["final year"],
+            subjects: {
+              "final year": ["Industrial Management"]
+            }
+          },
+           "Ms.S.Suganya": {
+            department: ["AI&DS","IT"],
+            years: ["second year","third year"],
+            subjects: {
+              "second year": ["Java Programming"],
+              "third year": ["Distributed computing"]
+            }
+          },
+           "Ms.D.Vinotha": {
+            department: "IT",
+            years: ["final year"],
+            subjects: {
+              "final year": ["Human value and Ethics"]
+            }
+          },
+          "Ms.S.Janarthini": {
+            department: "IT",
+            years: ["second year","third year"],
+            subjects: {
+              "second year": ["Web Technologies"],
+              "third year": ["Full Stack Web Development"]
+            }
+          } 
         };
 
         const EMPTY_STRUCTURE = {
@@ -48,8 +100,8 @@
         };
 
         // --- BACKEND DATABASE LINK (LIVE GOOGLE SHEETS INTEGRATION) ---
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxG7yZAIzhCHQizzx0abZAkiBBUW2r8lqlMITYRvSZ0p2CDIjeAKLvKQ-bkINf7gloVNw/exec";
-
+        // Google Sheets URL-க்கு பதிலா localhost / live backend URL
+        const API_URL = "http://localhost:5000/api";
         // --- 2. INDEX HOMEPAGE SYSTEM CONTROLLER ---
         function IndexPage({ onRoleSelect }) {
             const [hoveredCard, setHoveredCard] = useState(null);
@@ -62,7 +114,7 @@
             return (
                 <div style={{ fontFamily: "'Segoe UI', sans-serif", minHeight: '100vh', boxSizing: 'border-box', padding: '40px 20px', backgroundImage: "url('background1.jpg')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
                     <header style={{ background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(8px)', padding: '25px 40px', borderRadius: '16px', textAlign: 'center', marginBottom: '30px', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)', maxWidth: '800px', width: '100%', boxSizing: 'border-box' }}>
-                        <h1 style={{ margin: '0 0 10px 0', fontSize: '2.4rem', color: '#1a252f' }}>🏫 PGP College Academic Portal</h1>
+                        <h1 style={{ margin: '0 0 10px 0', fontSize: '2.4rem', color: '#1a252f' }}>🏫 PGP College of Engineering and Technology (Autonomous)</h1>
                         <p style={{ margin: 0, color: '#34495e', fontSize: '1.1rem', fontWeight: '500' }}>Automated Internal Evaluation & Mark Management System</p>
                     </header>
                     <main style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '30px', maxWidth: '1000px', width: '100%', margin: '0 auto' }}>
@@ -178,7 +230,7 @@
             // 🔄 LOAD DATA FROM GOOGLE SHEETS ON STARTUP
             useEffect(() => {
                 setIsLoading(true);
-                fetch(SCRIPT_URL)
+                fetch(API_URL)
                     .then(res => res.json())
                     .then(data => {
                         if (data.students && data.students.length > 0) {
@@ -245,14 +297,14 @@
                 }
 
                 // Send Students Matrix
-                fetch(SCRIPT_URL, {
+                fetch(API_URL, {
                     method: "POST",
                     mode: "no-cors",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ action: "SAVE_STUDENTS", payload: flatStudentsList })
                 }).then(() => {
                     // Send Marks Sync Matrix
-                    return fetch(SCRIPT_URL, {
+                    return fetch(API_URL, {
                         method: "POST",
                         mode: "no-cors",
                         headers: { "Content-Type": "application/json" },
